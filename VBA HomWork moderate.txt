@@ -1,0 +1,100 @@
+Sub Moderate_method2()
+
+
+Dim Number_of_row As Long
+Dim LastRow As Long
+Dim min_date As String
+Dim min_date_row As Long
+Dim max_date As String
+Dim max_date_row As Long
+Dim ticker As Long
+Dim row_in_column_A As Long
+Dim i As Long
+
+
+
+
+'store an array of sheets
+Dim ws As Worksheet
+Dim shtArray() As String
+Dim intA As Integer
+
+intA = 0
+'enter the sheet names into an array
+
+For Each ws In ActiveWorkbook.Worksheets
+    
+    intA = intA + 1
+    ReDim Preserve shtArray(intA)
+    shtArray(intA) = ws.Name
+
+'find number of row
+    Application.ActiveSheet.UsedRange
+    Number_of_row = Worksheets(shtArray(intA)).UsedRange.Rows.Count
+
+'copy and find unique names of stocks
+    Sheets(shtArray(intA)).Select
+    Range("A1:A" & Number_of_row).Copy
+    Range("J1").Select
+    ActiveSheet.Paste
+    Columns("J:J").RemoveDuplicates Columns:=1, Header:= _
+        xlYes
+
+'FIND TOTAL VOLUME FOR ALL TICKERS
+
+    LastRow = Cells(Rows.Count, 10).End(xlUp).Row
+    Range("M2").Select
+    ActiveCell.FormulaR1C1 = "=SUMIF(C[-12],RC[-3],C[-6])"
+    Selection.AutoFill Destination:=Range("M2:M" & LastRow)
+
+'loop through columnA
+row_in_column_A = 2
+    For ticker = 2 To LastRow
+    
+        min_date = "20161230"
+        max_date = "0"
+        min_date_row = 0
+        max_date_row = 0
+            
+        Do While Cells(row_in_column_A, 1) = Cells(ticker, 10)
+
+             If Cells(row_in_column_A, 2) <= min_date Then
+             min_date_row = row_in_column_A
+             min_date = Cells(row_in_column_A, 2)
+             End If
+             
+             If Cells(row_in_column_A, 2) >= max_date Then
+             max_date_row = row_in_column_A
+             max_date = Cells(row_in_column_A, 2)
+             End If
+             
+        row_in_column_A = row_in_column_A + 1
+             
+        Loop
+            
+        Cells(ticker, 11).Value = Cells(max_date_row, 6).Value - Cells(min_date_row, 3).Value
+        If Cells(min_date_row, 3).Value <> 0 Then
+        Cells(ticker, 12).Value = (Cells(max_date_row, 6).Value - Cells(min_date_row, 3).Value) / Cells(min_date_row, 3).Value
+        ElseIf Cells(min_date_row, 3).Value = 0 Then
+        Cells(ticker, 12).Value = 1
+        End If
+        Range("L" & ticker).Style = "Percent"
+        Range("L" & ticker).NumberFormat = "0.00%"
+        If Cells(ticker, 11).Value > 0 Then
+        Range("K" & ticker).Interior.Color = vbGreen
+        ElseIf Cells(ticker, 11).Value < 0 Then
+        Range("K" & ticker).Interior.Color = vbRed
+        End If
+    Next ticker
+    
+    Range("J1") = "Ticker"
+    Range("K1") = "Yearly Change"
+    Range("L1") = "Percent Change"
+    Range("M1") = "Total Volume"
+
+Next ws
+
+
+
+End Sub
+
